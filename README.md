@@ -9,6 +9,7 @@ Usage:
 ./simple-sync
 
 The tool will read the config and, in this order:
+- stop services
 - copy/override files and apply metadata
 - install packages
 - restart the packages marked as services
