@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
 
@@ -17,6 +18,8 @@ const (
 //Sync is the main configuration structure
 //It holds the Known and Desired states
 type Sync struct {
+	User         string
+	Password     string
 	DesiredState *State
 	KnownState   *State
 }
@@ -55,6 +58,13 @@ type File struct {
 
 //Load parses the config file into a Sync structure
 func Load() (*Sync, error) {
+
+	password := os.Getenv("PASSWORD")
+	if password == "" {
+		return nil,
+			errors.New("Root password not provided. Expecting a environment valiable PASSWORD")
+	}
+
 	desired, err := parse(DesiredStateFilePath)
 	if err != nil {
 		return nil, err
@@ -69,12 +79,15 @@ func Load() (*Sync, error) {
 	}
 
 	return &Sync{
+		User:         "root",
+		Password:     password,
 		DesiredState: desired,
 		KnownState:   known,
 	}, nil
 }
 
 func parse(path string) (*State, error) {
+
 	var config State
 
 	yamlFile, err := ioutil.ReadFile(path)

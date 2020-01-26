@@ -1,20 +1,18 @@
 ---
 servers:
-- ip: 35.222.205.134
+- ip: 34.235.139.164
 apps:
 - name: hello-world-app
   packages:
   - name: apache2
     is-service: true #if true, app starts a service with the same name
-  - name: php7.2
-  - name: libapache2-mod-php7.2
-  post-install-script: | # Runs only once
-    sudo a2dismod mpm_event && sudo a2enmod mpm_prefork && sudo a2enmod php7.2
+  - name: php5
+  - name: libapache2-mod-php5
   files:
   - path: /var/www/html/index.php
     mode: 644
-    owner: bengt
-    group: bengt
+    owner: root
+    group: root
     content: |
       <?php
 
