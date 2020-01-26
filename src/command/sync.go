@@ -32,6 +32,11 @@ func Sync(config *config.Sync) error {
 				return err
 			}
 
+			err = startServices(client, app)
+			if err != nil {
+				return err
+			}
+
 		}
 	}
 
@@ -104,6 +109,25 @@ sudo chown ${owner}:${group} ${path}
 	if err != nil {
 		log.Print(string(out))
 		return err
+	}
+
+	return nil
+}
+
+// Starts the services based on which packages are services
+// For simplicity, I'm not checking if service is running, just restarting them
+// because it works regardless of the service is running or not
+func startServices(client *sshclient.Client, app config.App) error {
+	for _, p := range app.Packages {
+		if p.IsService {
+			script := fmt.Sprintf("sudo service %s restart", p.Name)
+			out, err := client.Script(script).SmartOutput()
+			if err != nil {
+				log.Print(string(out))
+				return err
+			}
+			fmt.Printf("Service %s started\n", p.Name)
+		}
 	}
 
 	return nil

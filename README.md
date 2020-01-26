@@ -7,3 +7,8 @@ The tool is hard-coded to look for a configuration in `./config/desired.yml`
 
 Usage:
 ./simple-sync
+
+The tool will read the config and, in this order:
+- copy/override files and apply metadata
+- install packages
+- restart the packages marked as services
