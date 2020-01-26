@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/bengtrj/simple-sync/config"
 	"github.com/bengtrj/simple-sync/sshclient"
@@ -20,6 +21,11 @@ func Sync(config *config.Sync) error {
 				return err
 			}
 			defer client.Close()
+
+			err = syncFiles(client, app)
+			if err != nil {
+				return err
+			}
 
 			err = installPackages(client, app)
 			if err != nil {
@@ -46,10 +52,58 @@ func installPackages(client *sshclient.Client, desiredAppState config.App) error
 		fmt.Printf("Installing new package %s\n", p.Name)
 
 		cmd := fmt.Sprintf("sudo apt-get install %s -y", p.Name)
-		_, err := client.Cmd(cmd).SmartOutput()
+		out, err := client.Cmd(cmd).SmartOutput()
+		if err != nil {
+			log.Print(string(out))
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Syncs all files
+func syncFiles(client *sshclient.Client, desiredAppState config.App) error {
+
+	for _, file := range desiredAppState.Files {
+		fmt.Printf("Creating file %s\n", file.Path)
+		err := copyFile(client, file)
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+// Copies one file
+// For simplicity, it will always override the remote files
+func copyFile(client *sshclient.Client, file config.File) error {
+
+	template := `
+path="%s"
+owner=%s
+group=%s
+mode=%d
+
+cat <<EOF | sudo tee ${path}
+%s
+EOF
+
+sudo chmod ${mode} ${path}
+sudo chown ${owner}:${group} ${path}
+`
+
+	script := fmt.Sprintf(template,
+		file.Path,
+		file.Owner,
+		file.Group,
+		file.Mode,
+		file.Content)
+	out, err := client.Script(script).SmartOutput()
+	if err != nil {
+		log.Print(string(out))
+		return err
 	}
 
 	return nil
