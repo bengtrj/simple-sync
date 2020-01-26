@@ -8,8 +8,8 @@ The tool is hard-coded to look for a configuration in `./config/desired.yml`
 Usage:
 ./simple-sync
 
-Configuration:
-This is how the `./config/desired.yml` looks like:
+**Configuration:**
+this is how the `./config/desired.yml` looks like:
 
 ```yaml
 ---
