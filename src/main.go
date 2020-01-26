@@ -1,14 +1,20 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/bengtrj/simple-sync/command"
 	"github.com/bengtrj/simple-sync/config"
+	"gopkg.in/fsnotify.v1"
 )
 
 func main() {
+	run()
+	watchConfig()
+}
 
+func run() {
 	c, err := config.Load()
 	if err != nil {
 		log.Fatalf("An error occurred trying to parse the config: %v", err)
@@ -24,4 +30,37 @@ func main() {
 		log.Fatalf("An error occurred trying update state file: %v", err)
 	}
 
+	fmt.Println("\n**** Successfully syncronized the configuration across servers ****")
+}
+
+func watchConfig() {
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatalf("Could not watch file: %v", err)
+	}
+	defer watcher.Close()
+	fmt.Println("\nWatching for config file changes...")
+	done := make(chan bool)
+
+	go func() {
+		for {
+			select {
+			case event := <-watcher.Events:
+				if event.Op == fsnotify.Write {
+					run()
+					fmt.Println("\nWatching for config file changes...")
+				}
+			case err := <-watcher.Errors:
+				log.Fatalf("Could watching file: %v", err)
+			}
+		}
+	}()
+
+	// out of the box fsnotify can watch a single file, or a single directory
+	if err := watcher.Add(config.DesiredStateFilePath); err != nil {
+		log.Fatalf("Could not add watcher to file: %v", err)
+	}
+
+	<-done
 }
