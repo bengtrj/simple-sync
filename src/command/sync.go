@@ -29,7 +29,7 @@ func Sync(config *config.Sync) error {
 				return err
 			}
 
-			err = syncFiles(client, desiredApp)
+			err = syncFiles(client, knownApp, desiredApp)
 			if err != nil {
 				return err
 			}
@@ -56,7 +56,7 @@ func prettyPrintSync(knownApp, desiredApp config.App, server config.Server) {
 	if isNewInstall(knownApp) {
 		op = "Installing"
 	}
-	fmt.Printf("****  %s app %s on server %s  ****\n", op, desiredApp.Name, server.IP)
+	fmt.Printf("\n****  %s app %s on server %s  ****\n", op, desiredApp.Name, server.IP)
 }
 
 func isNewInstall(app config.App) bool {
@@ -126,11 +126,39 @@ func syncPackages(client *sshclient.Client, knownApp, desiredApp config.App) err
 }
 
 // Syncs all files
-func syncFiles(client *sshclient.Client, desiredAppState config.App) error {
+func syncFiles(client *sshclient.Client, knownApp, desiredApp config.App) error {
 
-	for _, file := range desiredAppState.Files {
-		fmt.Printf("Creating file %s\n", file.Path)
-		err := copyFile(client, file)
+	//First, add all known files into a hashtable
+	known := make(map[string]bool)
+	for _, p := range knownApp.Files {
+		known[p.Path] = true
+	}
+
+	var err error
+
+	//Then:
+	// if they are only present on known, delete the file
+	// otherwise copy overriding if exists
+	for _, file := range desiredApp.Files {
+		if _, ok := known[file.Path]; ok {
+			delete(known, file.Path)
+			fmt.Printf("Overriding file %s\n", file.Path)
+			err = copyFile(client, file)
+		} else {
+			fmt.Printf("Creating file %s\n", file.Path)
+			err = copyFile(client, file)
+		}
+
+		if err != nil {
+			return err
+		}
+	}
+
+	//Now, all files left on known should be deleted
+	for path := range known {
+		fmt.Printf("Deleting file %s\n", path)
+		script := fmt.Sprintf("sudo rm -f %s", path)
+		_, err := client.Script(script).SmartOutput()
 		if err != nil {
 			return err
 		}
