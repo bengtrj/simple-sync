@@ -24,31 +24,33 @@ func Sync(config *config.Sync) error {
 			}
 			defer client.Close()
 
-			err = stopServices(client, knownApp)
-			if err != nil {
-				return err
-			}
-
-			err = syncFiles(client, knownApp, desiredApp)
-			if err != nil {
-				return err
-			}
-
-			err = syncPackages(client, knownApp, desiredApp)
-			if err != nil {
-				return err
-			}
-
-			err = startServices(client, desiredApp)
-			if err != nil {
-				return err
-			}
+			syncronize(client, knownApp, desiredApp)
 
 		}
 	}
 
 	return nil
 
+}
+
+func syncronize(client *sshclient.Client, knownApp, desiredApp config.App) error {
+	err := stopServices(client, knownApp)
+	if err != nil {
+		return err
+	}
+
+	err = syncFiles(client, knownApp, desiredApp)
+	if err != nil {
+		return err
+	}
+
+	err = syncPackages(client, knownApp, desiredApp)
+	if err != nil {
+		return err
+	}
+
+	err = startServices(client, desiredApp)
+	return err
 }
 
 func prettyPrintSync(knownApp, desiredApp config.App, server config.Server) {
@@ -76,7 +78,6 @@ func findApp(knownState *config.State, name string) config.App {
 }
 
 // Installs all packages
-// Idempontent since apt-get won't change already installed packages
 func syncPackages(client *sshclient.Client, knownApp, desiredApp config.App) error {
 
 	err := aptUpdate(client)
@@ -113,16 +114,23 @@ func syncPackages(client *sshclient.Client, knownApp, desiredApp config.App) err
 
 	//Now, all packages left on known should be uninstalled
 	for name := range known {
-		fmt.Printf("Unistalling package %s\n", name)
-
-		cmd := fmt.Sprintf("sudo apt-get remove %s -y", name)
-		_, err := client.Cmd(cmd).SmartOutput()
+		removePackage(client, name)
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func removePackage(client *sshclient.Client, name string) error {
+	fmt.Printf("Unistalling package %s\n", name)
+	cmd := fmt.Sprintf("sudo apt-get remove %s -y", name)
+	out, err := client.Cmd(cmd).SmartOutput()
+	if err != nil {
+		log.Print(string(out))
+	}
+	return err
 }
 
 // Syncs all files
@@ -156,15 +164,22 @@ func syncFiles(client *sshclient.Client, knownApp, desiredApp config.App) error 
 
 	//Now, all files left on known should be deleted
 	for path := range known {
-		fmt.Printf("Deleting file %s\n", path)
-		script := fmt.Sprintf("sudo rm -f %s", path)
-		_, err := client.Script(script).SmartOutput()
-		if err != nil {
-			return err
-		}
+		deleteFile(client, path)
 	}
 
 	return nil
+}
+
+// Deletes one file
+func deleteFile(client *sshclient.Client, path string) error {
+	fmt.Printf("Deleting file %s\n", path)
+	cmd := fmt.Sprintf("sudo rm -f %s", path)
+	out, err := client.Cmd(cmd).SmartOutput()
+	if err != nil {
+		log.Print(string(out))
+		return err
+	}
+	return err
 }
 
 // Copies one file
