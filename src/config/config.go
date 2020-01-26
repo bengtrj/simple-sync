@@ -44,7 +44,8 @@ type App struct {
 
 //Package represents a package that should be present on the remote hosts
 type Package struct {
-	Name string `yaml:"name"`
+	Name      string `yaml:"name"`
+	IsService bool   `yaml:"is-service"`
 }
 
 //File represents a file that should be present on the remote hosts
