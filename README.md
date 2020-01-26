@@ -14,8 +14,8 @@ This is how the `./config/desired.yml` looks like:
 ```yaml
 ---
 servers:
-- ip: 34.228.39.123
-- ip: 34.235.139.164
+- ip: 50.0.0.1
+- ip: 50.0.0.2
 apps:
 - name: hello-world
   packages:
