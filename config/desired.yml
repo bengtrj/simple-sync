@@ -9,6 +9,14 @@ apps:
   - name: php5
   - name: libapache2-mod-php5
   files:
+  - path: /etc/apache2/mods-available/dir.conf
+    mode: 644
+    owner: root
+    group: root
+    content: |
+      <IfModule mod_dir.c>
+        DirectoryIndex index.php index.html index.cgi index.pl index.xhtml index.htm
+      </IfModule>
   - path: /var/www/html/index.php
     mode: 644
     owner: root
