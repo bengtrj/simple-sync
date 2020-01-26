@@ -8,14 +8,20 @@ import (
 )
 
 func main() {
-	// passd := os.Getenv("PASSWORD")
 
 	c, err := config.Load()
 	if err != nil {
-		log.Fatal("error loading config")
+		log.Fatalf("An error occurred trying to parse the config: %v", err)
 	}
+
 	err = command.Sync(c)
 	if err != nil {
-		log.Fatalf("error syncing %v", err)
+		log.Fatalf("An error occurred trying to syncronize: %v", err)
 	}
+
+	err = config.SetKnownState(c.DesiredState)
+	if err != nil {
+		log.Fatalf("An error occurred trying update state file: %v", err)
+	}
+
 }
