@@ -26,4 +26,4 @@ apps:
 
       header("Content-Type: text/plain");
 
-      echo "Hello, world2!\n";
+      echo "Hello, world!\n";
