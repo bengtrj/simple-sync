@@ -12,14 +12,10 @@ import (
 func Sync(config *config.Sync) error {
 
 	for _, server := range config.DesiredState.Servers {
-		for _, app := range config.DesiredState.Apps {
+		for _, desiredApp := range config.DesiredState.Apps {
 
-			knownAppState := findApp(config.KnownState, app.Name)
-			if isNewInstall(knownAppState) {
-				fmt.Printf("Installing app %s\n", app.Name)
-			} else {
-				fmt.Printf("Updating app %s\n", app.Name)
-			}
+			knownApp := findApp(config.KnownState, desiredApp.Name)
+			prettyPrintSync(knownApp, desiredApp, server)
 
 			address := fmt.Sprintf("%s:%s", server.IP, "22")
 			client, err := sshclient.DialWithPasswd(address, config.User, config.Password)
@@ -28,22 +24,22 @@ func Sync(config *config.Sync) error {
 			}
 			defer client.Close()
 
-			err = stopServices(client, knownAppState)
+			err = stopServices(client, knownApp)
 			if err != nil {
 				return err
 			}
 
-			err = syncFiles(client, app)
+			err = syncFiles(client, desiredApp)
 			if err != nil {
 				return err
 			}
 
-			err = installPackages(client, app)
+			err = syncPackages(client, knownApp, desiredApp)
 			if err != nil {
 				return err
 			}
 
-			err = startServices(client, app)
+			err = startServices(client, desiredApp)
 			if err != nil {
 				return err
 			}
@@ -53,6 +49,14 @@ func Sync(config *config.Sync) error {
 
 	return nil
 
+}
+
+func prettyPrintSync(knownApp, desiredApp config.App, server config.Server) {
+	op := "Updating"
+	if isNewInstall(knownApp) {
+		op = "Installing"
+	}
+	fmt.Printf("****  %s app %s on server %s  ****\n", op, desiredApp.Name, server.IP)
 }
 
 func isNewInstall(app config.App) bool {
@@ -73,20 +77,47 @@ func findApp(knownState *config.State, name string) config.App {
 
 // Installs all packages
 // Idempontent since apt-get won't change already installed packages
-func installPackages(client *sshclient.Client, desiredAppState config.App) error {
+func syncPackages(client *sshclient.Client, knownApp, desiredApp config.App) error {
 
 	err := aptUpdate(client)
 	if err != nil {
 		return err
 	}
 
-	for _, p := range desiredAppState.Packages {
-		fmt.Printf("Installing new package %s\n", p.Name)
+	//First, add all known packages into a hashtable
+	known := make(map[string]bool)
+	for _, p := range knownApp.Packages {
+		known[p.Name] = true
+	}
 
-		cmd := fmt.Sprintf("sudo apt-get install %s -y", p.Name)
-		out, err := client.Cmd(cmd).SmartOutput()
+	//Then:
+	// if they are present on both, no-op
+	// if they are only present on known, uninstall
+	// if they are only present on desired, install
+	for _, p := range desiredApp.Packages {
+
+		if _, ok := known[p.Name]; ok {
+			fmt.Printf("Skipping already installed package %s\n", p.Name)
+			delete(known, p.Name)
+		} else {
+			fmt.Printf("Installing new package %s\n", p.Name)
+
+			cmd := fmt.Sprintf("sudo apt-get install %s -y", p.Name)
+			_, err := client.Cmd(cmd).SmartOutput()
+			if err != nil {
+				return err
+			}
+		}
+
+	}
+
+	//Now, all packages left on known should be uninstalled
+	for name := range known {
+		fmt.Printf("Unistalling package %s\n", name)
+
+		cmd := fmt.Sprintf("sudo apt-get remove %s -y", name)
+		_, err := client.Cmd(cmd).SmartOutput()
 		if err != nil {
-			log.Print(string(out))
 			return err
 		}
 	}
