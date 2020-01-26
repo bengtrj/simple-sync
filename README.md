@@ -9,7 +9,7 @@ Usage:
 ./simple-sync
 
 The tool will read the config and, in this order:
-- stop services
+- stop services it manages (the ones defines in `./config/.known.yml`)
 - copy/override files and apply metadata
 - install packages
 - restart the packages marked as services

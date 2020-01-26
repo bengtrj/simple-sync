@@ -14,7 +14,13 @@ func Sync(config *config.Sync) error {
 	for _, server := range config.DesiredState.Servers {
 		for _, app := range config.DesiredState.Apps {
 
-			fmt.Printf("Updating/installing app %s\n", app.Name)
+			knownAppState := findApp(config.KnownState, app.Name)
+			if isNewInstall(knownAppState) {
+				fmt.Printf("Installing app %s\n", app.Name)
+			} else {
+				fmt.Printf("Updating app %s\n", app.Name)
+			}
+
 			address := fmt.Sprintf("%s:%s", server.IP, "22")
 			client, err := sshclient.DialWithPasswd(address, config.User, config.Password)
 			if err != nil {
@@ -22,7 +28,7 @@ func Sync(config *config.Sync) error {
 			}
 			defer client.Close()
 
-			err = stopServices(client, app)
+			err = stopServices(client, knownAppState)
 			if err != nil {
 				return err
 			}
@@ -47,6 +53,22 @@ func Sync(config *config.Sync) error {
 
 	return nil
 
+}
+
+func isNewInstall(app config.App) bool {
+	return len(app.Packages) == 0
+}
+
+func findApp(knownState *config.State, name string) config.App {
+	if knownState != nil {
+		for _, app := range knownState.Apps {
+			if app.Name == name {
+				return app
+			}
+		}
+	}
+	// return a empty "known state"
+	return config.App{}
 }
 
 // Installs all packages

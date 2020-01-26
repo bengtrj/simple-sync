@@ -87,6 +87,16 @@ func Load() (*Sync, error) {
 	}, nil
 }
 
+//SetKnownState updates the known state on disk
+func SetKnownState(state *State) error {
+	bytes, err := yaml.Marshal(state)
+	if err != nil {
+		return err
+	}
+	ioutil.WriteFile(knownStateFilePath, bytes, 0644)
+	return nil
+}
+
 func parse(path string) (*State, error) {
 
 	var config State
