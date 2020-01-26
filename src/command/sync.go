@@ -22,6 +22,11 @@ func Sync(config *config.Sync) error {
 			}
 			defer client.Close()
 
+			err = stopServices(client, app)
+			if err != nil {
+				return err
+			}
+
 			err = syncFiles(client, app)
 			if err != nil {
 				return err
@@ -130,6 +135,21 @@ func startServices(client *sshclient.Client, app config.App) error {
 		}
 	}
 
+	return nil
+}
+
+// Stops the services
+func stopServices(client *sshclient.Client, app config.App) error {
+	for _, p := range app.Packages {
+		if p.IsService {
+			script := fmt.Sprintf("sudo service %s stop", p.Name)
+			_, err := client.Script(script).SmartOutput()
+			if err != nil {
+				return err
+			}
+			fmt.Printf("Service %s stopped\n", p.Name)
+		}
+	}
 	return nil
 }
 
