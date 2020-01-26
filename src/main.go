@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
+	"github.com/bengtrj/simple-sync/command"
 	"github.com/bengtrj/simple-sync/config"
 )
 
@@ -14,5 +14,8 @@ func main() {
 	if err != nil {
 		log.Fatal("error loading config")
 	}
-	fmt.Println(c.DesiredState.Servers[0].IP)
+	err = command.Sync(c)
+	if err != nil {
+		log.Fatalf("error syncing %v", err)
+	}
 }
