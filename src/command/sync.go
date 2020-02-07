@@ -13,19 +13,22 @@ func Sync(config *config.Sync) error {
 
 	for _, server := range config.DesiredState.Servers {
 		for _, desiredApp := range config.DesiredState.Apps {
+			err := func() error {
+				knownApp := findApp(config.KnownState, desiredApp.Name)
+				prettyPrintSync(knownApp, desiredApp, server)
 
-			knownApp := findApp(config.KnownState, desiredApp.Name)
-			prettyPrintSync(knownApp, desiredApp, server)
+				address := fmt.Sprintf("%s:%s", server.IP, "22")
+				client, err := sshclient.DialWithPasswd(address, config.User, config.Password)
+				if err != nil {
+					return err
+				}
+				defer client.Close()
 
-			address := fmt.Sprintf("%s:%s", server.IP, "22")
-			client, err := sshclient.DialWithPasswd(address, config.User, config.Password)
+				return synchronize(client, knownApp, desiredApp)
+			}()
 			if err != nil {
 				return err
 			}
-			defer client.Close()
-
-			synchronize(client, knownApp, desiredApp)
-
 		}
 	}
 
@@ -98,8 +101,8 @@ func syncPackages(client *sshclient.Client, knownApp, desiredApp config.App) err
 	for _, p := range desiredApp.Packages {
 
 		if _, ok := known[p.Name]; ok {
-			fmt.Printf("Skipping already installed package %s\n", p.Name)
 			delete(known, p.Name)
+			fmt.Printf("Skipping already installed package %s\n", p.Name)
 		} else {
 			fmt.Printf("Installing new package %s\n", p.Name)
 
