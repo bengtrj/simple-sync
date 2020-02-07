@@ -239,8 +239,9 @@ func stopServices(client *sshclient.Client, app config.App) error {
 	for _, p := range app.Packages {
 		if p.IsService {
 			script := fmt.Sprintf("sudo service %s stop", p.Name)
-			_, err := client.Script(script).SmartOutput()
+			out, err := client.Script(script).SmartOutput()
 			if err != nil {
+				log.Print(string(out))
 				return err
 			}
 			fmt.Printf("Service %s stopped\n", p.Name)
@@ -250,8 +251,9 @@ func stopServices(client *sshclient.Client, app config.App) error {
 }
 
 func aptUpdate(client *sshclient.Client) error {
-	_, err := client.Cmd("sudo apt-get update -y").SmartOutput()
+	out, err := client.Cmd("sudo apt-get update -y").SmartOutput()
 	if err != nil {
+		log.Print(string(out))
 		return err
 	}
 	return nil
