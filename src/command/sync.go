@@ -24,7 +24,7 @@ func Sync(config *config.Sync) error {
 			}
 			defer client.Close()
 
-			syncronize(client, knownApp, desiredApp)
+			synchronize(client, knownApp, desiredApp)
 
 		}
 	}
@@ -33,7 +33,7 @@ func Sync(config *config.Sync) error {
 
 }
 
-func syncronize(client *sshclient.Client, knownApp, desiredApp config.App) error {
+func synchronize(client *sshclient.Client, knownApp, desiredApp config.App) error {
 	err := stopServices(client, knownApp)
 	if err != nil {
 		return err
