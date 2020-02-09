@@ -37,7 +37,6 @@ func Sync(config *config.Sync) error {
 	}
 
 	return nil
-
 }
 
 func synchronize(client *sshclient.Client, knownApp, desiredApp config.App) error {
@@ -86,7 +85,6 @@ func findApp(knownState *config.State, name string) config.App {
 
 // Installs all packages
 func syncPackages(client *sshclient.Client, knownApp, desiredApp config.App) error {
-
 	err := aptUpdate(client)
 	if err != nil {
 		return err
@@ -142,7 +140,6 @@ func removePackage(client *sshclient.Client, name string) error {
 
 // Syncs all files
 func syncFiles(client *sshclient.Client, knownApp, desiredApp config.App) error {
-
 	//First, add all known files into a hashtable
 	known := make(map[string]bool)
 	for _, p := range knownApp.Files {
@@ -192,7 +189,6 @@ func deleteFile(client *sshclient.Client, path string) error {
 // Copies one file
 // For simplicity, it will always override the remote files
 func copyFile(client *sshclient.Client, file config.File) error {
-
 	template := `
 path="%s"
 owner=%s

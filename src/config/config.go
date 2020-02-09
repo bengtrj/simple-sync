@@ -59,7 +59,6 @@ type File struct {
 
 //Load parses the config file into a Sync structure
 func Load() (*Sync, error) {
-
 	password := os.Getenv("PASSWORD")
 	if password == "" {
 		return nil,
@@ -93,26 +92,24 @@ func SetKnownState(state *State) error {
 	if err != nil {
 		return err
 	}
+
 	err = ioutil.WriteFile(knownStateFilePath, bytes, 0644)
 	return err
 }
 
 func parse(path string) (*State, error) {
-
-	var config State
-
 	yamlFile, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
+	var config State
 	err = yaml.Unmarshal(yamlFile, &config)
 	if err != nil {
 		return nil, err
 	}
 
 	return &config, nil
-
 }
 
 func fileExists(filename string) bool {
