@@ -93,8 +93,8 @@ func SetKnownState(state *State) error {
 	if err != nil {
 		return err
 	}
-	ioutil.WriteFile(knownStateFilePath, bytes, 0644)
-	return nil
+	err = ioutil.WriteFile(knownStateFilePath, bytes, 0644)
+	return err
 }
 
 func parse(path string) (*State, error) {
