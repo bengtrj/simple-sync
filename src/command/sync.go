@@ -3,6 +3,7 @@ package command
 import (
 	"fmt"
 	"log"
+	"reflect"
 
 	"github.com/bengtrj/simple-sync/config"
 	"github.com/bengtrj/simple-sync/sshclient"
@@ -10,13 +11,16 @@ import (
 
 //Sync runs the synchronization logic
 func Sync(config *config.Sync) error {
-
 	for _, server := range config.DesiredState.Servers {
 		for _, desiredApp := range config.DesiredState.Apps {
 			err := func() error {
 				knownApp := findApp(config.KnownState, desiredApp.Name)
-				prettyPrintSync(knownApp, desiredApp, server)
 
+				if reflect.DeepEqual(knownApp, desiredApp) {
+					fmt.Printf("Skipping app %s because it's already on the desired state.")
+					return nil
+				}
+				prettyPrintSync(knownApp, desiredApp, server)
 				address := fmt.Sprintf("%s:%s", server.IP, "22")
 				client, err := sshclient.DialWithPasswd(address, config.User, config.Password)
 				if err != nil {
