@@ -15,9 +15,9 @@ func Sync(config *config.Sync) error {
 		for _, desiredApp := range config.DesiredState.Apps {
 			err := func() error {
 				knownApp := findApp(config.KnownState, desiredApp.Name)
-
 				if reflect.DeepEqual(knownApp, desiredApp) {
-					fmt.Printf("Skipping app %s because it's already on the desired state.")
+					fmt.Printf("Skipping app %s on server %s because it's already on the desired state.",
+						knownApp.Name, server)
 					return nil
 				}
 				prettyPrintSync(knownApp, desiredApp, server)
